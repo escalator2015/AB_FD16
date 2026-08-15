@@ -1,0 +1,92 @@
+menu "AudioBus FD16 Configuration"
+
+    config ABUS_FD16_ENABLE
+        bool "Enable FD16 full-duplex point-to-point profile"
+        default y
+        help
+            Enables the FD16 fixed point-to-point full-duplex PHY/profile
+            (SN65LVDS049, 16 channels, 48 kHz, 32-bit, 27.648 Mb/s NRZ).
+
+    config ABUS_FD16_CONCEALMENT_THRESHOLD
+        int "FD16 consecutive bad frames before output mute"
+        default 64
+        range 0 65535
+        depends on ABUS_FD16_ENABLE
+        help
+            Number of consecutive CRC/sync failures before the FD16 receiver
+            mutes its output. 0 disables muting (repeat-last-sample forever).
+
+    config ABUS_FD16_AUDIO_BUF_FRAMES
+        int "FD16 audio ring buffer depth (sample frames)"
+        default 8
+        range 4 64
+        depends on ABUS_FD16_ENABLE
+
+    config ABUS_FD16_PIN_ROLE
+        int "FD16 role-select GPIO (1=master A, 0=slave B)"
+        default -1
+        range -1 54
+        depends on ABUS_FD16_ENABLE
+        help
+            GPIO input read at startup to determine the node role:
+            HIGH (1) = master/clock source A, LOW (0) = slave/clock receiver B.
+            Set -1 to force master (A) when the pin is not wired.
+
+    menu "FD16 GPIO Pin Configuration"
+        depends on ABUS_FD16_ENABLE
+
+        config ABUS_FD16_PIN_TX_DATA
+            int "PARLIO TX data[0] GPIO (→ SN65LVDS049 DIN1)"
+            default -1
+            range -1 54
+            help
+                ESP32-P4 GPIO connected to SN65LVDS049 DIN1 (driver input).
+                Set -1 if not yet assigned from the board schematic.
+
+        config ABUS_FD16_PIN_RX_DATA
+            int "PARLIO RX data[0] GPIO (← SN65LVDS049 ROUT1)"
+            default -1
+            range -1 54
+            help
+                ESP32-P4 GPIO connected to SN65LVDS049 ROUT1 (receiver output).
+
+        config ABUS_FD16_PIN_TX_CLK
+            int "PARLIO TX clock output GPIO (optional)"
+            default -1
+            range -1 54
+            help
+                Optional PARLIO TX clock output pin. Set -1 if not used.
+
+        config ABUS_FD16_PIN_CLK_IN
+            int "27.648 MHz external clock input GPIO (PARLIO TX+RX)"
+            default -1
+            range -1 54
+            help
+                ESP32-P4 GPIO receiving the 27.648 MHz transport clock.
+                Master (A): Si5351A CLK0 output.
+                Slave (B): SN65LVDS049 ROUT2 (received LVDS clock).
+
+        config ABUS_FD16_PIN_CLK_OUT
+            int "SN65LVDS049 DIN2 GPIO (clock driver input, master only)"
+            default -1
+            range -1 54
+            help
+                ESP32-P4 GPIO driving SN65LVDS049 DIN2 → DOUT2 → Cat6A Pair 3.
+                Only used on the master (A). Set -1 on slave (B).
+
+        config ABUS_FD16_PIN_I2C_SDA
+            int "Si5351A I2C SDA GPIO (master only)"
+            default -1
+            range -1 54
+            help
+                I2C data line to the Si5351A clock generator. Set -1 if not used.
+
+        config ABUS_FD16_PIN_I2C_SCL
+            int "Si5351A I2C SCL GPIO (master only)"
+            default -1
+            range -1 54
+            help
+                I2C clock line to the Si5351A clock generator. Set -1 if not used.
+    endmenu
+
+endmenu
