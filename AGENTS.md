@@ -17,10 +17,12 @@ AudioBus/                    # Top-level ESP-IDF project (target esp32p4)
 │   │   ├── fd16_frame.h     # Frame constants + pack/unpack + CRC-16-CCITT
 │   │   ├── audiobus_fd16.h  # Dedicated FD16 profile API (init/start/stop/audio/stats)
 │   │   ├── audiobus_phy.h   # PHY vtable (abus_phy_ops_t) + abus_phy_fd16_create()
-│   │   └── audiobus_types.h # Types + ABUS_PHY_LVDS_FD16
+│   │   ├── audiobus_types.h # Types + ABUS_PHY_LVDS_FD16
+│   │   └── si5351a.h        # Si5351A I2C clock generator driver
 │   └── src/
 │       ├── fd16_frame.c     # CRC-16-CCITT + big-endian serialization
 │       ├── audiobus_fd16.c  # FD16 core: ring buffers, frame task, concealment
+│       ├── si5351a.c        # Si5351A I2C programming (27.648 MHz on CLK0)
 │       └── phy/
 │           └── phy_lvds_fd16.c  # SN65LVDS049 PARLIO 1-bit TX/RX PHY
 ├── tests/fd16/              # Host unit tests + link test notes
@@ -43,7 +45,7 @@ idf.py flash monitor
 ```
 
 **Component dependencies** (declared in `components/audiobus/CMakeLists.txt`):
-`esp_driver_parlio`, `esp_driver_gpio`, `freertos`, `esp_common`, `log`, `heap`
+`esp_driver_parlio`, `esp_driver_gpio`, `esp_driver_i2c`, `freertos`, `esp_common`, `log`, `heap`
 
 ## Coding Conventions
 
@@ -93,6 +95,10 @@ idf.py flash monitor
 | `ABUS_FD16_PIN_TX_CLK` | -1 | PARLIO TX clock output (optional) |
 | `ABUS_FD16_PIN_CLK_IN` | -1 | 27.648 MHz external clock (TX+RX) |
 | `ABUS_FD16_PIN_CLK_OUT` | -1 | SN65LVDS049 DIN2 (clock driver, master only) |
+| `ABUS_FD16_SI5351A_ENABLE` | y | Enable Si5351A driver (master only) |
+| `ABUS_FD16_SI5351A_XTAL_HZ` | 25000000 | Si5351A reference crystal |
+| `ABUS_FD16_SI5351A_CLK0_HZ` | 27648000 | Si5351A CLK0 output (transport clock) |
+| `ABUS_FD16_I2C_CLK_HZ` | 400000 | Si5351A I2C bus speed |
 | `ABUS_FD16_PIN_I2C_SDA` | -1 | Si5351A I2C SDA (master only) |
 | `ABUS_FD16_PIN_I2C_SCL` | -1 | Si5351A I2C SCL (master only) |
 
@@ -103,7 +109,7 @@ idf.py flash monitor
 - **`parlio_rx_unit_receive()` is not ISR-safe**: never call it from an ISR; use the re-queue task pattern.
 - **ISR budget**: the PHY RX ISR has a hard deadline of one frame period (~20.8 µs @ 48 kHz). Do not add non-ISR-safe operations inside `set_rx_callback` handlers.
 - **`MALLOC_CAP_DMA` alignment**: ESP32-P4 DMA buffers must be 4-byte aligned and in internal SRAM.
-- **No Si5351A driver exists**: the PHY reports the 27.648 MHz invariant but does not program the Si5351A; this is a hardware-integration task.
+- **Si5351A driver**: `si5351a.c` programs CLK0 to 27.648 MHz on the master (A) via I2C before PARLIO starts. The slave (B) has no Si5351A; it receives the clock.
 - **50 m is a validation target, not a guarantee**: TI does not guarantee the SN65LVDS049 at 50 m; validate with PRBS31/BERT (see `docs/FD16.md`).
 
 ## Design Brief

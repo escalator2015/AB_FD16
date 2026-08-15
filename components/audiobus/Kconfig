@@ -32,6 +32,38 @@ menu "AudioBus FD16 Configuration"
             HIGH (1) = master/clock source A, LOW (0) = slave/clock receiver B.
             Set -1 to force master (A) when the pin is not wired.
 
+    config ABUS_FD16_SI5351A_ENABLE
+        bool "Enable Si5351A clock generator driver (master only)"
+        default y
+        depends on ABUS_FD16_ENABLE
+        help
+            Programs the Si5351A via I2C to generate the 27.648 MHz transport
+            clock on CLK0. Only used on the master node (A).
+
+    config ABUS_FD16_SI5351A_XTAL_HZ
+        int "Si5351A reference crystal frequency (Hz)"
+        default 25000000
+        range 10000000 40000000
+        depends on ABUS_FD16_SI5351A_ENABLE
+        help
+            Frequency of the Si5351A reference crystal (e.g. 25 MHz = 25000000).
+
+    config ABUS_FD16_SI5351A_CLK0_HZ
+        int "Si5351A CLK0 output frequency (Hz)"
+        default 27648000
+        range 1000000 200000000
+        depends on ABUS_FD16_SI5351A_ENABLE
+        help
+            Desired frequency on CLK0. Default 27.648 MHz (FD16 transport clock).
+
+    config ABUS_FD16_I2C_CLK_HZ
+        int "Si5351A I2C bus clock (Hz)"
+        default 400000
+        range 100000 1000000
+        depends on ABUS_FD16_SI5351A_ENABLE
+        help
+            I2C bus speed for the Si5351A (e.g. 400 kHz = 400000).
+
     menu "FD16 GPIO Pin Configuration"
         depends on ABUS_FD16_ENABLE
 

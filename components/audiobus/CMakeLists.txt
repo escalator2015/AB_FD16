@@ -2,12 +2,14 @@ idf_component_register(
     SRCS
         "src/audiobus_fd16.c"
         "src/fd16_frame.c"
+        "src/si5351a.c"
         "src/phy/phy_lvds_fd16.c"
     INCLUDE_DIRS
         "include"
     REQUIRES
         esp_driver_parlio
         esp_driver_gpio
+        esp_driver_i2c
         freertos
         esp_common
         log

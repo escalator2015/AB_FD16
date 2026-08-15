@@ -34,6 +34,7 @@
 #include "audiobus_phy.h"
 #include "audiobus_types.h"
 #include "fd16_frame.h"
+#include "si5351a.h"
 
 #include "driver/parlio_tx.h"
 #include "driver/parlio_rx.h"
@@ -44,6 +45,7 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "esp_heap_caps.h"
+#include "sdkconfig.h"
 
 #include <string.h>
 
@@ -68,6 +70,8 @@ typedef struct {
     int8_t tx_clk_pin;      /* PARLIO TX clock output (optional) */
     int8_t clk_in_pin;      /* 27.648 MHz external clock (TX + RX) */
     int8_t clk_out_pin;     /* SN65LVDS049 DIN2 (clock driver, master only) */
+    int8_t i2c_sda_pin;     /* Si5351A I2C SDA (master only) */
+    int8_t i2c_scl_pin;     /* Si5351A I2C SCL (master only) */
 
     /* PARLIO handles */
     parlio_tx_unit_handle_t     tx_unit;
@@ -199,6 +203,22 @@ static esp_err_t fd16_init(void *phy_ctx) {
     ctx->tx_done_sem = xSemaphoreCreateBinary();
     ctx->rx_done_sem = xSemaphoreCreateBinary();
     if (!ctx->tx_done_sem || !ctx->rx_done_sem) return ESP_ERR_NO_MEM;
+
+    /* --- Si5351A clock source (master only) ---
+     * Program the Si5351A to generate the 27.648 MHz transport clock on CLK0
+     * BEFORE creating the PARLIO units, so the external clock is present when
+     * PARLIO starts. The slave (B) has no Si5351A; it receives the clock. */
+    if (ctx->role == ABUS_ROLE_MASTER &&
+        ctx->i2c_sda_pin >= 0 && ctx->i2c_scl_pin >= 0) {
+        abus_si5351a_config_t si = {
+            .sda_pin = ctx->i2c_sda_pin,
+            .scl_pin = ctx->i2c_scl_pin,
+            .i2c_clk_hz = CONFIG_ABUS_FD16_I2C_CLK_HZ,
+            .xtal_hz = CONFIG_ABUS_FD16_SI5351A_XTAL_HZ,
+            .clk0_hz = CONFIG_ABUS_FD16_SI5351A_CLK0_HZ,
+        };
+        ESP_RETURN_ON_ERROR(abus_si5351a_init(&si), TAG, "Si5351A init failed");
+    }
 
     /* --- PARLIO TX: 1-bit, external 27.648 MHz clock --- */
     gpio_num_t tx_data[PARLIO_TX_UNIT_MAX_DATA_WIDTH];
@@ -420,6 +440,8 @@ esp_err_t abus_phy_fd16_create(const void *pin_config, abus_role_t role,
     ctx->tx_clk_pin  = pins->tx_clk;
     ctx->clk_in_pin  = pins->clk_in;
     ctx->clk_out_pin = pins->clk_out;
+    ctx->i2c_sda_pin = pins->i2c_sda;
+    ctx->i2c_scl_pin = pins->i2c_scl;
 
     out_phy->ops = &fd16_phy_ops;
     out_phy->ctx = ctx;

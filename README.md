@@ -25,6 +25,7 @@ Full-duplex fixed point-to-point audio transport for **ESP32-P4** (ESP-IDF v5.5.
 - CRC-16-CCITT + sequence counter + repeat-last-sample error concealment
 - No 8b10b, no CDR, no turnaround, no half-duplex direction switching
 - A is the sole transport-clock master; B receives the dedicated LVDS clock
+- Si5351A I2C driver programs the 27.648 MHz transport clock on the master
 - GPIO pins configurable via `menuconfig`
 
 ## Quick start
@@ -92,7 +93,10 @@ idf.py menuconfig
 | `ABUS_FD16_PIN_I2C_SDA` | Si5351A I2C SDA (master only) | — |
 | `ABUS_FD16_PIN_I2C_SCL` | Si5351A I2C SCL (master only) | — |
 
-Also configurable: `ABUS_FD16_AUDIO_BUF_FRAMES`, `ABUS_FD16_CONCEALMENT_THRESHOLD`.
+Also configurable: `ABUS_FD16_AUDIO_BUF_FRAMES`, `ABUS_FD16_CONCEALMENT_THRESHOLD`,
+`ABUS_FD16_SI5351A_XTAL_HZ` (reference crystal, default 25 MHz),
+`ABUS_FD16_SI5351A_CLK0_HZ` (CLK0 output, default 27.648 MHz),
+`ABUS_FD16_I2C_CLK_HZ` (I2C bus speed, default 400 kHz).
 
 **Role selection:** the node role is read from the `ABUS_FD16_PIN_ROLE` GPIO at
 startup (HIGH = master A, LOW = slave B). The same firmware runs on both nodes;

@@ -16,14 +16,22 @@ Covers:
 - SYNC pattern validation
 - Wire byte order (big-endian deterministic)
 
-## Regression (legacy builds)
+### Si5351A parameter tests (`test_si5351a`)
+
+Covers:
+- 27.648 MHz with 25 MHz crystal → correct PLL/output multisynth params
+- 27.648 MHz with 27 MHz crystal → correct params
+- VCO stays in [600, 900] MHz for various frequencies
+- Invalid arguments rejected (zero freq, null out, out-of-range divider)
+- Output divider within multisynth range
+
+## Build (root project)
 
 ```bash
 source $IDF_PATH/export.sh
-idf.py -C examples/master_node set-target esp32p4
-idf.py -C examples/master_node build
-idf.py -C examples/slave_node set-target esp32p4
-idf.py -C examples/slave_node build
+idf.py set-target esp32p4
+idf.py menuconfig            # → AudioBus FD16 Configuration → set GPIO pins
+idf.py build
 ```
 
 ## Integration / link tests (requires hardware)
@@ -41,5 +49,5 @@ For a basic single-board loopback, connect:
 - SN65LVDS049 ROUT1 → PARLIO RX data[0]
 - 27.648 MHz → SN65LVDS049 DIN2 AND PARLIO clk_in
 
-Then run `examples/fd16_node`; `rx_frames` should track `tx_frames` and
+Then run the root project; `rx_frames` should track `tx_frames` and
 `crc_errors`/`sync_errors` remain zero.
