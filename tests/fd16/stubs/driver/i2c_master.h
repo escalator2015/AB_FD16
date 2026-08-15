@@ -75,3 +75,9 @@ static inline esp_err_t i2c_master_transmit(i2c_master_dev_handle_t dev,
     (void)dev; (void)buf; (void)len; (void)timeout_ms;
     return ESP_OK;
 }
+
+static inline esp_err_t i2c_master_probe(i2c_master_bus_handle_t bus,
+                                         uint16_t address, int xfer_timeout_ms) {
+    (void)bus; (void)address; (void)xfer_timeout_ms;
+    return ESP_ERR_NOT_FOUND;
+}

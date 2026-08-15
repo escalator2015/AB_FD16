@@ -218,6 +218,19 @@ esp_err_t abus_si5351a_init(const abus_si5351a_config_t *cfg) {
     };
     ESP_RETURN_ON_ERROR(i2c_new_master_bus(&bus_cfg, &s_bus), TAG, "bus create");
 
+    /* --- Scan the I2C bus and log detected devices --- */
+    ESP_LOGI(TAG, "Scanning I2C bus (SDA=%d SCL=%d)...", cfg->sda_pin, cfg->scl_pin);
+    int found = 0;
+    for (uint16_t addr = 0x03; addr <= 0x77; addr++) {
+        esp_err_t probe = i2c_master_probe(s_bus, addr, 50);
+        if (probe == ESP_OK) {
+            ESP_LOGI(TAG, "I2C device found at 0x%02X%s", addr,
+                     addr == ABUS_SI5351A_I2C_ADDR ? " (Si5351A)" : "");
+            found++;
+        }
+    }
+    ESP_LOGI(TAG, "I2C scan complete: %d device(s) found", found);
+
     i2c_device_config_t dev_cfg = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
         .device_address = ABUS_SI5351A_I2C_ADDR,
